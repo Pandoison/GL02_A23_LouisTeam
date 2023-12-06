@@ -25,8 +25,7 @@ Parser.prototype.tokenize = function(data){
     return data;
 }
 
-// parse : Analyze the data by invoking the initial non-terminal rule of 
-the grammar.
+// parse : Analyze the data by invoking the initial non-terminal rule of the grammar.
 Parser.prototype.parse = function(data){
     if (data.length !== 0){
         var tData = this.tokenize(data);
@@ -57,8 +56,7 @@ Parser.prototype.next = function(input){
     return curS
 }
 
-// accept : Vérifier si l'argument "s" fait partie des symboles du 
-langage..
+// accept : Vérifier si l'argument "s" fait partie des symboles du langage..
 
 Parser.prototype.accept = function(s){
     var idx = this.symb.indexOf(s);
@@ -133,8 +131,7 @@ Parser.prototype.creneau = function (input, curCour, nomDuCour){
         let getIndex = this.index(input);
         let getSalle = this.salle(input);
         this.expect("//", input);
-        var p = new creneau(nomDuCour, getType, getCapacitaire, getJour, 
-getHeureDebut, getHeureFin, getIndex, getSalle);
+        var p = new creneau(nomDuCour, getType, getCapacitaire, getJour, getHeureDebut, getHeureFin, getIndex, getSalle);
         curCour.addCreneau(p);
         this.listeCreneaux.push(p);
         if (input.length > 0){
@@ -147,8 +144,7 @@ getHeureDebut, getHeureFin, getIndex, getSalle);
 
 Parser.prototype.type = function(input){
     var curS = this.next(input);
-    if(matched = curS.match(/[TCD][0-9]/)){ // T, C ou D suivi de 1 
-chiffre
+    if(matched = curS.match(/[TCD][0-9]/)){ // T, C ou D suivi de 1 chiffre
         return matched[0];
     }else{
         this.errMsg("Nom invalide.", input);
@@ -158,8 +154,7 @@ Parser.prototype.jour = function(input){
     this.expect("H", input);
     this.expect("=", input);
     var curS = this.next(input);
-    if(matched = curS.match(/L|MA|ME|J|V|S/)){//Vérifier la 
-correspondance.
+    if(matched = curS.match(/L|MA|ME|J|V|S/)){//Vérifier la correspondance.
         return matched[0];
 
     } else{
@@ -181,8 +176,7 @@ Parser.prototype.capacitaire = function(input){
 Parser.prototype.heureFin = function(input){
     this.expect("-", input);
     var curS = this.next(input);
-    if(matched = curS.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)){//des 
-chiffres : des chiffres
+    if(matched = curS.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)){//des chiffres : des chiffres
         return matched[0];
     } else{
         this.errMsg("Heure fin invalide", input);
@@ -190,8 +184,7 @@ chiffres : des chiffres
 }
 Parser.prototype.heureDebut = function(input){
     var curS = this.next(input);
-    if(matched = curS.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)){//des 
-chiffres : des chiffres
+    if(matched = curS.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)){//des chiffres : des chiffres
         return matched[0];
     } else{
         this.errMsg("Jour invalide", input);
