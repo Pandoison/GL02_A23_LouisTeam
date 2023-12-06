@@ -18,7 +18,34 @@ cli
     .version('parser-cli')
     .version('0.07')
 
-    //Donne la cappacité d'accueil d'une salle
+    // Affiche toutes les salles associées à un cours donnée, Spec 01
+    .command('sallesCours', 'Consulter la liste des salles associées à un cours donné')
+    .argument('<cours>', 'Le cours')
+    .action(({args, options, logger}) => {
+        let analyseurFichier = recupererFichiers();
+
+        if (analyseurFichier.errorCount === 0) {
+            if (!analyseurFichier.listeCreneaux.isEmpty) {
+                let tableauUe = new Array();
+            analyseurFichier.listeCreneaux.forEach(c => creerTableauUe(c, tableauUe));
+
+                if (tableauUe.includes(args.cours)) {
+                    let tableauSallesDuCours = new Array();
+                    analyseurFichier.listeCreneaux.forEach(c => creerTableauSallesDuCours(c, tableauSallesDuCours, args.cours));
+                    console.log("Voici la liste des salles de ce cours :");
+                    tableauSallesDuCours.forEach(c => console.log(c));
+                } else {
+                    logger.info("Le cours rentré n'existe pas".red);
+                }
+            } else {
+                logger.info("Le fichier ne contient pas de salles.".red);
+            }
+        } else {
+            logger.info("Le fichier .cru contient une erreur".red);
+        }
+    })
+
+    //Donne la cappacité d'accueil d'une salle Spec 02
     .command('capacite', 'Donne la capacité maximale d\'une salle.')
     .argument('<salle>', 'Le nom de la salle.')
     .action(({args, options, logger}) => {
@@ -39,55 +66,7 @@ cli
 		}
     })
 
-
-    //Affiche le classement des salles
-    .command('classementSalles', 'Affiche les salles par ordre de capacité maximale croissante')
-    .action(({args, options, logger}) => {
-        let analyseurFichier = recupererFichiers();
-
-        if (analyseurFichier.errorCount === 0) {
-            let tableauSalles = new Array();
-            if (analyseurFichier.listeCreneaux.length > 0) {  // Utilisation de l'opérateur de comparaison correct
-                analyseurFichier.listeCreneaux.forEach(c => creerTabSalles(c, tableauSalles));
-
-                let tableauSallesAvecCapacites = new Array();
-                tableauSalles.forEach(c => tableauSallesAvecCapacites.push(new objetSalle(c, infoCapaciteMaximumSalle(c, analyseurFichier.listeCreneaux))))
-                tableauSallesAvecCapacites.sort((a, b) => a.capMax - b.capMax);
-                tableauSallesAvecCapacites.forEach(c => console.log(c.nom + " capacité maximale : " + c.capMax));
-            } else {
-                logger.info("Le fichier ne contient pas de salles.".red);
-            }
-        } else {
-            logger.info("Le fichier .cru contient une erreur".red);
-        }
-    })
-
-    // Affiche le nombre de salle correspondant à une capacité d'accueil donnée
-    .command('NbSallesParCapacitaire', 'Affiche le nombre de salle existante pouvant accueillir chaque capacitaire')
-    .action(({args, options, logger}) => {
-        let analyzer = recupererFichiers();
-
-         if (analyzer.errorCount===0){
-            if (!analyzer.listeCreneaux.isEmpty){
-                let tabSalles = new Array();
-                analyzer.listeCreneaux.forEach(e => creerTabSalles(e, tabSalles));
-                let tabSallesAvecCapacites = new Array();
-                tabSalles.forEach(e => tabSallesAvecCapacites.push(new objetSalle(e, donnerCapaciteMaxSalle(e, analyzer.listeCreneaux))))
-                let tabCapacitaires = new Array();
-                tabSallesAvecCapacites.forEach(e=> creerTabCapacitaires(e, tabCapacitaires));
-                tabCapacitaires.sort((a, b) => a-b);
-                let tabObjetsCapacitaires = new Array();
-                tabCapacitaires.forEach(e=>creerTabObjetsCapacitaire(e, tabObjetsCapacitaires, tabSallesAvecCapacites));
-                tabObjetsCapacitaires.forEach(e=>console.log("Capacitaire : " + e.capacitaire + "   Nbr salles : " + e.nbSalleDansCeCapacitaire));
-            }else {
-                logger.info("Le fichier ne contient pas de salles.".red);
-            }
-        }else{
-            logger.info("Le fichier .cru contient une erreur".red);
-        }
-    })
-
-    // Affiche les salles disponibles durant un créneau donné
+    // Affiche les salles disponibles durant un créneau donné SPEC 04
     .command('sallesLibres', 'Consulter les salles libres durant un créneau donné')
     .argument('<heureDebut>', 'Heure du début du créneau avec 8:00=8h00; 8:30=8h30; 9:00= 9h00;...')
     .argument('<heureFin>', 'Heure de la fin du créneau avec 8:00=8h00; 8:30=8h30; 9:00= 9h00;...')
@@ -140,25 +119,20 @@ cli
     })
 
 
-    // Affiche toutes les salles associées à un cours donnée
-    .command('sallesCours', 'Consulter la liste des salles associées à un cours donné')
-    .argument('<cours>', 'Le cours')
+    //Affiche le classement des salles SPEC08
+    .command('classementSalles', 'Affiche les salles par ordre de capacité maximale croissante')
     .action(({args, options, logger}) => {
         let analyseurFichier = recupererFichiers();
 
         if (analyseurFichier.errorCount === 0) {
-            if (!analyseurFichier.listeCreneaux.isEmpty) {
-                let tableauUe = new Array();
-            analyseurFichier.listeCreneaux.forEach(c => creerTableauUe(c, tableauUe));
+            let tableauSalles = new Array();
+            if (analyseurFichier.listeCreneaux.length > 0) {  // Utilisation de l'opérateur de comparaison correct
+                analyseurFichier.listeCreneaux.forEach(c => creerTabSalles(c, tableauSalles));
 
-                if (tableauUe.includes(args.cours)) {
-                    let tableauSallesDuCours = new Array();
-                    analyseurFichier.listeCreneaux.forEach(c => creerTableauSallesDuCours(c, tableauSallesDuCours, args.cours));
-                    console.log("Voici la liste des salles de ce cours :");
-                    tableauSallesDuCours.forEach(c => console.log(c));
-                } else {
-                    logger.info("Le cours rentré n'existe pas".red);
-                }
+                let tableauSallesAvecCapacites = new Array();
+                tableauSalles.forEach(c => tableauSallesAvecCapacites.push(new objetSalle(c, infoCapaciteMaximumSalle(c, analyseurFichier.listeCreneaux))))
+                tableauSallesAvecCapacites.sort((a, b) => a.capMax - b.capMax);
+                tableauSallesAvecCapacites.forEach(c => console.log(c.nom + " capacité maximale : " + c.capMax));
             } else {
                 logger.info("Le fichier ne contient pas de salles.".red);
             }
@@ -167,6 +141,7 @@ cli
         }
     })
 
+    
 
 cli.run(process.argv.slice(2));
 
@@ -202,30 +177,6 @@ function creerTabSalles(element, tab){
 		tab.push(element.salle);
 	}
 	return tab;
-}
-
-// permet de recuperer un tableau contenant tout les capacitaires max de la base de données
-function creerTabCapacitaires(elementObjetSalle, tab){
-	if (!tab.includes(elementObjetSalle.capMax)){
-		tab.push(elementObjetSalle.capMax)
-	}
-	return tab;
-}
-// permet de creer un tableau contenant tout les capacitaires ainsi que le nombre de salle contenant ce capacitaire
-function creerTabObjetsCapacitaire(elementCapacitaire, tab, tabSallesAvecCapacites){
-	let objetCap = new objetCapacitaire(elementCapacitaire, 0);
-	tabSallesAvecCapacites.forEach(e=> {
-		if (e.capMax === objetCap.capacitaire){
-			objetCap.nbSalleDansCeCapacitaire++;
-		}
-	})
-	tab.push(objetCap);
-}
-
-function donnerCapaciteMaxSalle(nomSalle, listeCreneaux){
-	listeCreneauxDeLaSalle = listeCreneaux.filter(p => p.salle === nomSalle); // recupere tout les creneaux pour une salle donnée
-	let capaciteMaxSalle = Math.max.apply(Math, listeCreneauxDeLaSalle.map(function(o) { return o.capacitaire; })) // recupere le capacitaire maximal de tout ces creneaux
-	return capaciteMaxSalle;
 }
 
 function creerTableauSallesVides(element, tab, heur1, heur2, jour){
@@ -279,9 +230,4 @@ function creerTableauSallesDuCours(element, tab, cours){
 let objetSalle = function (nom, capMax){
 	this.nom = nom;
 	this.capMax = capMax;
-}
-//objet contenant un capacitaire et le nombre de salle dans ce capacitaire
-let objetCapacitaire = function (capacitaire, nbSalleDansCeCapacitaire){
-	this.capacitaire = capacitaire;
-	this.nbSalleDansCeCapacitaire = nbSalleDansCeCapacitaire;
 }
