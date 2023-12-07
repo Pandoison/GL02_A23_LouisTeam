@@ -35,7 +35,7 @@ cli
                     console.log("Voici la liste des salles de ce cours :");
                     tableauSallesDuCours.forEach(c => console.log(c));
                 } else {
-                    logger.info("Le cours rentré n'existe pas".red);
+                    logger.info("Veuillez entrer un nom de cours valable".red);
                 }
             } else {
                 logger.info("Le fichier ne contient pas de salles.".red);
@@ -55,7 +55,7 @@ cli
        if(analyseurFichier.errorCount === 0){
 			let salleExistante = analyseurFichier.listeCreneaux;
 			if (salleExistante.filter(p => p.salle.match(args.salle)).length ===0){
-				logger.info("La salle demandé n'existe pas dans la base de donnée.".red)
+				logger.info("Veuillez entrer un nom de salle valide".red)
 			}
 			else {
 				let capaciteMaxSalle = infoCapaciteMaximumSalle(args.salle, analyseurFichier.listeCreneaux);
@@ -208,7 +208,7 @@ cli
                     logger.info("Le fichier .cru contient une erreur".red);
                 }
             } else {
-            logger.info("Les horaires que vous avez entrés ne sont pas valides".red);
+            logger.info("Veuillez entrer un créneau valide”.".red);
         }
         } else {
             logger.info("Le jour que vous avez entré n'est pas valide".red);
