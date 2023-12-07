@@ -37,6 +37,7 @@ Ce projet utilise plusieurs modules npm, notamment :
 
 Jeux de donnée:
 Le jeux de donnée fournis dans le fichier .cru sont essentiels pour le fonctionnement du script, fournissant des informations cruciales sur les salles de cours, les créneaux horaires et leurs capacités. Voici une liste des cours et des salles qui pourraient s'avérer utiles lors d'une recherche :
+
 Cours :
 •	TN01
 •	TN01T1
