@@ -310,7 +310,7 @@ cli
 
     
 
-cli.run(process.argv.slice(2));
+cli.run(process.argv.slice(2)); 
 
 function recupererFichiers() {
     console.log("Recuperation des données depuis ".blue + dataBasePath.blue);
