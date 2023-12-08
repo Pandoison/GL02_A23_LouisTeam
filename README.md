@@ -1,7 +1,6 @@
 # GL02_A23_LouisTeam
 Projet de GL02, Logiciel utilitaire en ligne de commande pour la gestion des salles de cours
-Membre: Louis, Nassim, Emma, Chengxian, Mael
-
+Membre: Louis, Nassim, Mael, (Emma, Chengxian)
 
 Ce script JavaScript propose une interface en ligne de commande (CLI) permettant de gérer les salles de cours, leur capacité et leur disponibilité en fonction des créneaux horaires.
 
@@ -9,7 +8,8 @@ Prérequis :
 Assurez-vous d'avoir Node.js installé sur votre machine pour exécuter ce script.
 
 Utilisation :
-Au lancement du logiciel, un menu interactif est affiché. Chaque commande est associée à un numéro et l'utilisateur est invité à saisir le numéro correspondant à l'action souhaitée.
+Pour mettre en marche le logiciel, exécutez le fichier main.js depuis l'invite de commande à l'aide de la commande node main.js.
+Au démarrage du logiciel, un menu interactif s'affiche, proposant diverses actions. Chaque commande est représentée par un numéro et l'utilisateur est invité à saisir le numéro associé à l'action qu'il souhaite effectuer.
 
 Commandes disponibles :
 1.	SPEC_1 : Obtention de la liste des salles
@@ -28,6 +28,8 @@ o	Demande le nom de la salle, l'heure de début et l'heure de fin du créneau. A
 	Affiche un diagramme synthétique du taux d'occupation. Basé sur le nombre d'heures d'occupation dans la semaine par rapport à une semaine de 6 jours de 8 heures.
 8.	SPEC_8 : Classement par capacité d'accueil
 	Affiche une liste de salles triées en fonction de leur capacité, de manière croissante
+quit. Quitter le menu
+	Cette commande permet de sortir du menu interactif et de retourner à l'invite de commande pour terminer l'exécution du programme.
 
 Dépendances:
 Ce projet utilise plusieurs modules npm, notamment :
@@ -341,3 +343,5 @@ Salles :
 •	D106
 •	J004
 
+Les tests:
+Ils jouent un rôle essentiel dans nos spécifications en détectant rapidement toute anomalie potentielle. Cruciaux pour vérifier l'existence des informations requises, repérer des problèmes dans le fichier ou des incohérences dans les données, ils prennent la forme d'instructions "if" à différents niveaux des spécifications. Ces tests nous aident à localiser les potentielles erreurs et à en comprendre leur nature.
