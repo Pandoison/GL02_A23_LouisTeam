@@ -216,7 +216,7 @@ cli
     })
 
     
-    // Enseignements d'un utilisateur entre 2 dates (charbel) SPEC5
+    // Enseignements d'un utilisateur entre 2 dates SPEC5
     .command('GenererCalendar', 'Generer un fichier iCalendar contenant la calendrier d\'un utilisateur entre 2 jours')
     .alias('pl')
     .argument('<jour1>', 'Generer le planning à partir du jour jour1. Avec: L=Lundi; MA=Mardi; ME=Mercredi; J=Jeudi; V=Vendredi; S=Samedi')
@@ -293,6 +293,85 @@ cli
             logger.info('Les jours que vous avez entrez ne sont pas valides'.red);
         }
     })
+
+    // Réserver une salle pour un créneau durant un jour de l'année SPEC06
+    .command('ReserverSalle', 'Réserver une salle pour un créneau donné')
+    .argument('<salle>', 'Le nom de la salle.')
+    .argument('<heureDebut>', 'Heure de début de la réservation.')
+    .argument('<heureFin>', 'Heure de fin de la réservation.')
+    .argument('<date>', 'Date de la réservation au format JJ/MM/AAAA.')
+    .action(({args, options, logger}) => {
+        // Récupérer les fichiers et charger les réservations depuis le fichier JSON
+        let analyzer = recupererFichiers();
+        let reservations = [];
+        try {
+            reservations = JSON.parse(fs.readFileSync('reservations.json', 'utf-8')) || [];
+        } catch (error) {
+            logger.error("Erreur lors de la lecture du fichier reservations.json : " + error.message);
+        }
+
+        // Initialiser la propriété 'reservations' s'il n'existe pas
+        if (!analyzer.reservations) {
+            analyzer.reservations = [];
+        }
+
+        if (analyzer.errorCount === 0) {
+            // Vérifier la disponibilité de la salle
+            let salleExist = analyzer.listeCreneaux.some(c => c.salle.match(args.salle));
+            
+            if (salleExist) {
+                let salleOccupee = reservations.some(r =>
+                    r.salle === args.salle &&
+                    r.date === args.date &&
+                    ((r.heureDebut <= args.heureDebut && args.heureDebut < r.heureFin) ||
+                    (r.heureDebut < args.heureFin && args.heureFin <= r.heureFin))
+                );
+
+                if (!salleOccupee) {
+                    // Vérifier si la salle a déjà été réservée
+                    let salleDejaReservee = analyzer.reservations.some(r =>
+                        r.salle === args.salle &&
+                        r.date === args.date &&
+                        r.heureDebut === args.heureDebut &&
+                        r.heureFin === args.heureFin
+                    );
+
+                    if (!salleDejaReservee) {
+                        // Mettre à jour les informations pour refléter la réservation
+                        // Ajouter la réservation à la liste des réservations
+                        analyzer.reservations.push({
+                            salle: args.salle,
+                            date: args.date,
+                            heureDebut: args.heureDebut,
+                            heureFin: args.heureFin,
+                        });
+
+                        // Ajouter la réservation au tableau des réservations
+                        reservations.push({
+                            salle: args.salle,
+                            date: args.date,
+                            heureDebut: args.heureDebut,
+                            heureFin: args.heureFin,
+                        });
+
+                        // Enregistrer les réservations dans le fichier JSON
+                        fs.writeFileSync('reservations.json', JSON.stringify(reservations, null, 2));
+
+                        logger.info("La salle " + args.salle + " a été réservée avec succès pour le créneau du " + args.date + " de " + args.heureDebut + " à " + args.heureFin);
+                    } else {
+                        logger.info("La salle est déjà réservée pendant ce créneau. Veuillez choisir un autre créneau.");
+                    }
+                } else {
+                    logger.info("La salle est déjà réservée pendant ce créneau. Veuillez choisir un autre créneau.");
+                }
+            } else {
+                logger.info("La salle renseignée n'existe pas".red);
+            }
+        } else {
+            logger.info("Le fichier .cru contient une erreur".red);
+        }
+    })
+
 
 
 
@@ -419,8 +498,8 @@ function showMainMenu() {
     console.log('2 - Spec2 (Donne la cappacité d\'accueil d\'une salle)');
     console.log('3 - Spec3 (Disponibilités d\'une salle)');
     console.log('4 - Spec4 (Affiche les salles disponibles durant un créneau donné)');
-    console.log('5 - Spec5 (Enseignements d\'un utilisateur entre 2 dates (charbel))');
-    console.log('6 - Spec6 (...)');
+    console.log('5 - Spec5 (Enseignements d\'un utilisateur entre 2 dates)');
+    console.log('6 - Spec6 (Réserver une salle)');
     console.log('7 - Spec7 (Visualisation synthétique du taux d\'occupation)');
     console.log('8 - Spec8 (Affiche le classement des salles)');
     console.log('Entrez votre choix ou tapez "quit" pour quitter :');
@@ -711,6 +790,59 @@ function spec5() {
         });
     });
 }
+
+// Spec6 dans la NF2
+function spec6() {
+    rl.question('Entrez le nom de la salle à réserver : ', (salle) => {
+        rl.question('Entrez l\'heure de début de la réservation (HH:MM) : ', (heureDebut) => {
+            rl.question('Entrez l\'heure de fin de la réservation (HH:MM) : ', (heureFin) => {
+                rl.question('Entrez la date de la réservation (JJ/MM/AAAA) : ', (date) => {
+                    let analyzer = recupererFichiers();
+                    let reservations = [];
+                    try {
+                        reservations = JSON.parse(fs.readFileSync('reservations.json', 'utf-8')) || [];
+                    } catch (error) {
+                        console.error("Erreur lors de la lecture du fichier reservations.json : " + error.message);
+                    }
+
+                    // Vérifier la disponibilité de la salle
+                    let salleExist = analyzer.listeCreneaux.some(c => c.salle.match(salle));
+                    if (salleExist) {
+                        let salleOccupee = reservations.some(r =>
+                            r.salle === salle &&
+                            r.date === date &&
+                            ((r.heureDebut <= heureDebut && heureDebut < r.heureFin) ||
+                            (r.heureDebut < heureFin && heureFin <= r.heureFin))
+                        );
+
+                        if (!salleOccupee) {
+                            // Ajouter la réservation
+                            reservations.push({
+                                salle: salle,
+                                date: date,
+                                heureDebut: heureDebut,
+                                heureFin: heureFin,
+                            });
+
+                            // Enregistrer les réservations dans le fichier JSON
+                            fs.writeFileSync('reservations.json', JSON.stringify(reservations, null, 2));
+
+                            console.log(`La salle ${salle} a été réservée avec succès pour le créneau du ${date} de ${heureDebut} à ${heureFin}.`);
+                        } else {
+                            console.log("La salle est déjà réservée pendant ce créneau. Veuillez choisir un autre créneau.");
+                        }
+                    } else {
+                        console.log("La salle renseignée n'existe pas");
+                    }
+
+                    // Réafficher le menu
+                    showMainMenu();
+                });
+            });
+        });
+    });
+}
+
 
 
 // Spec7 dans la NF2
