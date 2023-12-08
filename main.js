@@ -34,7 +34,7 @@ cli
                     analyseurFichier.listeCreneaux.forEach(c => creerTableauSallesDuCours(c, tableauSallesDuCours, args.cours));
                     console.log("Voici la liste des salles de ce cours :");
                     tableauSallesDuCours.forEach(c => console.log(c));
-                } else {
+                } else {  
                     logger.info("Le cours rentré n'existe pas".red);
                 }
             } else {
@@ -215,73 +215,151 @@ cli
         }
     })
 
+    
+    // Enseignements d'un utilisateur entre 2 dates (charbel) SPEC5
+    .command('GenererCalendar', 'Generer un fichier iCalendar contenant la calendrier d\'un utilisateur entre 2 jours')
+    .alias('pl')
+    .argument('<jour1>', 'Generer le planning à partir du jour jour1. Avec: L=Lundi; MA=Mardi; ME=Mercredi; J=Jeudi; V=Vendredi; S=Samedi')
+    .argument('<jour2>', 'Generer le planning jusqu\'à jour2. Avec: L=Lundi; MA=Mardi; ME=Mercredi; J=Jeudi; V=Vendredi; S=Samedi')
+    .action(({args, options, logger}) => {
+        let joursSemaine = ["L", "MA", "ME", "J", "V", "S"];
+
+        if (joursSemaine.includes(args.jour1) && joursSemaine.includes(args.jour2)) {
+            let rl = readline.createInterface({
+                input: process.stdin,
+                output: process.stdout
+            });
+
+            let fichierAnalyzeur = recupererFichiers();
+
+            if (fichierAnalyzeur.errorCount === 0) {
+                let fichierCruFiltre = fichierAnalyzeur.parsedCRU;
+                fichierCruFiltre = fichierCruFiltre.filter(p => p.uv.match(args.needle));
+
+                let lesCreneaux = [];
+                fichierCruFiltre.forEach(element => {
+                    lesCreneaux = lesCreneaux.concat(element.creneaux);
+                });
+
+                rl.question("Entrez vos cours séparés par des espaces: ", function(answer) {
+                    let cours = answer.split(' ');
+
+                    lesCreneaux = lesCreneaux.filter(c =>
+                        cours.includes(c.nomUe) &&
+                        joursSemaine.indexOf(c.jour) <= joursSemaine.indexOf(args.jour2) &&
+                        joursSemaine.indexOf(c.jour) >= joursSemaine.indexOf(args.jour1)
+                    );
+
+                    rl.close();
+
+                    let rfcText = "BEGIN: VCALENDAR\nVersion: 2.0\nPRODID: -//Universite centrale de la republique de Sealand (SRU)//FR\n";
+
+                    lesCreneaux.forEach(element => {
+                        let today = new Date();
+                        let year = today.getFullYear();
+                        let month = String(today.getMonth() + 1).padStart(2, '0');
+                        let day = String(today.getDate()).padStart(2, '0');
+
+                        let startTime = year + month + day + 'T' + element.heureDebut.replace(':', '') + "00";
+                        let endTime = year + month + day + 'T' + element.heureFin.replace(':', '') + "00";
+
+                        rfcText += "BEGIN: VEVENT\nUID:000000\nDTSTAMP:" +
+                            today.toISOString() +
+                            "\nORGANIZER: Mail to:info.utt@utt.fr\nDTSTART:" +
+                            startTime +
+                            "\nDTEND:" +
+                            endTime +
+                            "\nSUMMARY: Nom de l'UV:" +
+                            element.nomUe + ' | ' +
+                            element.type + ',' +
+                            element.capacitaire +
+                            ',' + element.index +
+                            "\nLOCATION:" +
+                            element.salle +
+                            "\nEND:VEVENT\n";
+                    });
+
+                    rfcText += "\nEND:VCALENDAR";
 
 
-
-// Visualisation synthétique du taux d’occupation, SPEC 07
-//Basé sur le nbr d'h doccupation dans la semaine par rapport à une semaine de 6 jours de 8h,  
-.command('tauxdOccupation', 'Crée un diagramme du taux d\'occupation')
-.action(({args, options, logger}) => {
-    let analyseurFichier = recupererFichiers();
- 
-    if (analyseurFichier.errorCount === 0) {
-        var listeSalles = [];
-
-        analyseurFichier.listeCreneaux.forEach(function (creneau) {
-            var debut = creneau.heureDebut.split(':');
-            var fin = creneau.heureFin.split(':');
-            var heureDebut = debut[0];
-            var minDebut = debut[1];
-            var heureFin = fin[0];
-            var minFin = fin[1];
-
-            if (minDebut === "30") {
-                heureDebut = parseInt(heureDebut, 10) + 0.5;
-            }
-            if (minFin === "30") {
-                heureFin = parseInt(heureFin, 10) + 0.5;
-            }
-            const duree = heureFin - heureDebut;
-
-            if (listeSalles.some(e => e.nom.match(creneau.salle))) {
-                const salle = listeSalles.find(e => e.nom.match(creneau.salle));
-                const pos = listeSalles.indexOf(salle);
-                listeSalles[pos].occupation += duree;
+                    let filename = args.jour1 + '_' + args.jour2 + '_planning';
+                    fs.writeFileSync('./' + filename + '.ics', rfcText);
+                    logger.info('Le fichier resultat est généré : ./' + filename + '.ics');
+                });
             } else {
-                listeSalles.push(new Salle(creneau.salle, duree))
+                logger.info('Le fichier .cru contient une erreur'.red);
             }
-        });
+        } else {
+            logger.info('Les jours que vous avez entrez ne sont pas valides'.red);
+        }
+    })
 
-        listeSalles.forEach(function (salle) {
-            salle.occupation = (salle.occupation / 66) * 100
-        });
 
-        var occRtChart = {
-            "data": {
-                "values": listeSalles
-            },
-            "mark": "bar",
-            "encoding": {
-                "x": {"field": "nom", "type": "nominal"},
-                "y": {"field": "occupation", "type": "quantitative", "title": "Occupation Rate %"}
-            }
-        };
 
-        const myChart = vegalite.compile(occRtChart).spec;
+    // Visualisation synthétique du taux d’occupation, SPEC 07
+    //Basé sur le nbr d'h doccupation dans la semaine par rapport à une semaine de 6 jours de 8h
+    .command('tauxdOccupation', 'Crée un diagramme du taux d\'occupation')
+    .action(({args, options, logger}) => {
+        let analyseurFichier = recupererFichiers();
+    
+        if (analyseurFichier.errorCount === 0) {
+            var listeSalles = [];
 
-        var runtime = vg.parse(myChart);
-        var view = new vg.View(runtime).renderer('svg').run();
-        var mySvg = view.toSVG();
-        mySvg.then(function (res) {
-            fs.writeFileSync("./result.svg", res);
-            view.finalize();
-            logger.info("Chart output : ./result.svg");
-        });
+            analyseurFichier.listeCreneaux.forEach(function (creneau) {
+                var debut = creneau.heureDebut.split(':');
+                var fin = creneau.heureFin.split(':');
+                var heureDebut = debut[0];
+                var minDebut = debut[1];
+                var heureFin = fin[0];
+                var minFin = fin[1];
 
-    } else {
-        logger.info("“Veuillez entrer un nom de salle valide".red);
-    }
-})
+                if (minDebut === "30") {
+                    heureDebut = parseInt(heureDebut, 10) + 0.5;
+                }
+                if (minFin === "30") {
+                    heureFin = parseInt(heureFin, 10) + 0.5;
+                }
+                const duree = heureFin - heureDebut;
+
+                if (listeSalles.some(e => e.nom.match(creneau.salle))) {
+                    const salle = listeSalles.find(e => e.nom.match(creneau.salle));
+                    const pos = listeSalles.indexOf(salle);
+                    listeSalles[pos].occupation += duree;
+                } else {
+                    listeSalles.push(new Salle(creneau.salle, duree))
+                }
+            });
+
+            listeSalles.forEach(function (salle) {
+                salle.occupation = (salle.occupation / 66) * 100
+            });
+
+            var occRtChart = {
+                "data": {
+                    "values": listeSalles
+                },
+                "mark": "bar",
+                "encoding": {
+                    "x": {"field": "nom", "type": "nominal"},
+                    "y": {"field": "occupation", "type": "quantitative", "title": "Occupation Rate %"}
+                }
+            };
+
+            const myChart = vegalite.compile(occRtChart).spec;
+
+            var runtime = vg.parse(myChart);
+            var view = new vg.View(runtime).renderer('svg').run();
+            var mySvg = view.toSVG();
+            mySvg.then(function (res) {
+                fs.writeFileSync("./result.svg", res);
+                view.finalize();
+                logger.info("Chart output : ./result.svg");
+            });
+
+        } else {
+            logger.info("“Veuillez entrer un nom de salle valide".red);
+        }
+    })
 
 
 
@@ -310,7 +388,465 @@ cli
 
     
 
-cli.run(process.argv.slice(2));
+// Créer une instance de l'interface readline
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+// Écouter l'entrée utilisateur
+rl.on('line', (input) => {
+  handleUserChoice(input);
+});
+
+
+// Activer le menu interactif
+if (process.argv.length <= 2) {
+    showMainMenu();
+}
+  
+// Si des arguments de commande sont fournis, exécuter la CLI Caporal
+if (process.argv.length > 2) {
+    cli.run(process.argv.slice(2));
+}
+
+
+
+// Afficher le menu principal
+function showMainMenu() {
+    console.log('Veuillez sélectionner une option en entrant le chiffre correspondant :');
+    console.log('1 - Spec1 (Affiche toutes les salles associées à un cours donnée) ');
+    console.log('2 - Spec2 (Donne la cappacité d\'accueil d\'une salle)');
+    console.log('3 - Spec3 (Disponibilités d\'une salle)');
+    console.log('4 - Spec4 (Affiche les salles disponibles durant un créneau donné)');
+    console.log('5 - Spec5 (Enseignements d\'un utilisateur entre 2 dates (charbel))');
+    console.log('6 - Spec6 ()');
+    console.log('7 - Spec7 (Visualisation synthétique du taux d\'occupation)');
+    console.log('8 - Spec8 (Affiche le classement des salles)');
+    console.log('Entrez votre choix ou tapez "quit" pour quitter :');
+  }
+
+// Spec1 dans la NF2
+function spec1() {
+    rl.question('Entrez le nom du cours : ', (cours) => {
+      let analyseurFichier = recupererFichiers();
+  
+      if (analyseurFichier.errorCount === 0) {
+        if (!analyseurFichier.listeCreneaux.isEmpty) {
+          let tableauUe = new Array();
+          analyseurFichier.listeCreneaux.forEach(c => creerTableauUe(c, tableauUe));
+  
+          if (tableauUe.includes(cours)) {
+            let tableauSallesDuCours = new Array();
+            analyseurFichier.listeCreneaux.forEach(c => creerTableauSallesDuCours(c, tableauSallesDuCours, cours));
+            console.log("Voici la liste des salles de ce cours :");
+            tableauSallesDuCours.forEach(c => console.log(c));
+          } else {
+            console.log("Le cours rentré n'existe pas".red);
+          }
+        } else {
+          console.log("Le fichier ne contient pas de salles.".red);
+        }
+      } else {
+        console.log("Le fichier .cru contient une erreur".red);
+      }
+  
+      showMainMenu(); // Réafficher le menu
+    });
+}
+  
+// Spec2 dans la NF2
+function spec2() {
+rl.question('Entrez le nom de la salle : ', (salle) => {
+    let analyseurFichier = recupererFichiers();
+
+    if(analyseurFichier.errorCount === 0){
+    let salleExistante = analyseurFichier.listeCreneaux;
+    if (salleExistante.filter(p => p.salle.match(salle)).length === 0){
+        console.log("La salle demandée n'existe pas dans la base de données.".red)
+    } else {
+        let capaciteMaxSalle = infoCapaciteMaximumSalle(salle, analyseurFichier.listeCreneaux);
+        console.log(`La salle ${salle} peut accueillir au maximum : ${capaciteMaxSalle} personnes.`);
+    }
+    } else {
+    console.log("Le fichier .cru contient une erreur".red);
+    }
+
+    showMainMenu(); // Réafficher le menu
+});
+}
+
+// Spec3 dans la NF2
+function spec3() {
+    rl.question('Entrez le nom de la salle : ', (salle) => {
+        let analyseurFichier = recupererFichiers();
+
+        if (analyseurFichier.errorCount === 0) {
+            if (analyseurFichier.listeCreneaux.some(c => c.salle.match(salle))) {
+                var nomSalle = salle;
+                var creneauxOccupes = analyseurFichier.listeCreneaux.filter(c => c.salle.match(nomSalle));
+
+                // on initialise (6 jours, de 8h à 20h, créneaux de 30 minutes)
+                let creneauxDisponibles = [];
+                let jours = ["L", "MA", "ME", "J", "V", "S"];
+                jours.forEach(function (jour) {
+                    if (jour !== "S") {
+                        for (var h = 8; h < 20; h++) {
+                            for (var min = 0; min < 60; min = min + 30) {
+                                if (min === 30) {
+                                    creneauxDisponibles.push(new CreneauDisponible(jour, h + ":" + min, (h + 1) + ":" + "00"));
+                                } else {
+                                    creneauxDisponibles.push(new CreneauDisponible(jour, h + ":" + "00", h + ":" + (min + 30)));
+                                }
+                            }
+                        }
+                    } else {
+                        for (var h = 8; h < 12; h++) {
+                            for (var min = 0; min < 60; min = min + 30) {
+                                if (min === 30) {
+                                    creneauxDisponibles.push(new CreneauDisponible(jour, h + ":" + min, (h + 1) + ":" + "00"));
+                                } else {
+                                    creneauxDisponibles.push(new CreneauDisponible(jour, h + ":" + "00", h + ":" + (min + 30)));
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // On retire chaque créneau durant lequel la salle est occupée de la liste représentant tous les créneaux créés précédemment
+                creneauxOccupes.forEach(function (occupe) {
+                    var debut = occupe.heureDebut.split(':');
+                    var fin = occupe.heureFin.split(':');
+                    var heureDebut = debut[0];
+                    var minDebut = debut[1];
+                    var heureFin = fin[0];
+                    var minFin = fin[1];
+
+                    if (minDebut === "30") {
+                        heureDebut = parseInt(heureDebut, 10) + 0.5;
+                    }
+                    if (minFin === "30") {
+                        heureFin = parseInt(heureFin, 10) + 0.5;
+                    }
+
+                    creneauxDisponibles.forEach(function (disponible) {
+                        if (disponible.jour === occupe.jour) {
+                            if (disponible.heureDebut === occupe.heureDebut) {
+                                var nbSuppression = (heureFin - heureDebut) * 2;
+                                creneauxDisponibles.splice(creneauxDisponibles.indexOf(disponible), nbSuppression);
+                            }
+                        }
+                    });
+                });
+
+                // Affichage
+                jours.forEach(function (jour) {
+                    var creneau = creneauxDisponibles.filter(c => c.jour.match(jour));
+                    var creneaux = "";
+                    creneau.forEach(function (c) {
+                        creneaux = creneaux + " " + c.heureDebut + "-" + c.heureFin;
+                    });
+
+                    if (jour === "L") {
+                        console.log("\nLundi : " + creneaux);
+                    } else if (jour === "MA") {
+                        console.log("\nMardi : " + creneaux);
+                    } else if (jour === "ME") {
+                        console.log("\nMercredi : " + creneaux);
+                    } else if (jour === "J") {
+                        console.log("\nJeudi : " + creneaux);
+                    } else if (jour === "V") {
+                        console.log("\nVendredi : " + creneaux);
+                    } else if (jour === "S") {
+                        console.log("\nSamedi : " + creneaux);
+                    }
+                });
+            } else {
+                console.log("Veuillez entrer un nom de salle valide".red);
+            }
+        } else {
+            console.log("Le fichier .cru contient une erreur".red);
+        }
+
+        showMainMenu(); // Re-display the menu
+    });
+}
+
+
+
+// Spec4 dans la NF2
+function spec4() {
+    rl.question('Entrez l\'heure de début (au format 8:00, 8:30, etc.) : ', (heureDebut) => {
+        rl.question('Entrez l\'heure de fin (au format 8:00, 8:30, etc.) : ', (heureFin) => {
+            rl.question('Entrez le jour de la semaine (L, MA, ME, J, V, S) : ', (jour) => {
+                let joursSemaine = ["L", "MA", "ME", "J", "V", "S"];
+
+                if (joursSemaine.includes(jour)) {
+                    let horaires = ["8:00", "8:30", "9:00", "9:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00"];
+
+                    if (horaires.includes(heureDebut) && horaires.includes(heureFin)) {
+                        let analyzer = recupererFichiers();
+
+                        // Initialiser les propriétés 'listeCreneaux' et 'reservations' si elles n'existent pas
+                        if (!analyzer.listeCreneaux) {
+                            analyzer.listeCreneaux = [];
+                        }
+                        if (!analyzer.reservations) {
+                            analyzer.reservations = [];
+                        }
+
+                        if (analyzer.errorCount === 0) {
+                            if (!analyzer.listeCreneaux.isEmpty) {
+                                let tableauSallesDisponibles = new Array();
+                                analyzer.listeCreneaux.forEach(c => creerTableauSallesVides(c, tableauSallesDisponibles, heureDebut, heureFin, jour));
+
+                                console.log("Voici la liste des salles disponibles :");
+                                tableauSallesDisponibles.forEach(s => {
+                                    // Vérifier si la salle est réservée pendant le créneau
+                                    let salleReservee = analyzer.reservations.some(r =>
+                                        r.salle === s.salle &&
+                                        r.jour === jour &&
+                                        ((r.heureDebut <= s.heureDebut && s.heureDebut < r.heureFin) || (r.heureDebut < s.heureFin && s.heureFin <= r.heureFin)));// N'inclure la salle que si elle n'est pas réservée
+                                    if (!salleReservee) {
+                                        console.log(s);
+                                    }
+                                });
+                            } else {
+                                console.log("Le fichier ne contient pas de salles.".red);
+                            }
+                        } else {
+                            console.log("Le fichier .cru contient une erreur".red);
+                        }
+                    } else {
+                        console.log("Les horaires que vous avez entrés ne sont pas valides".red);
+                    }
+                } else {
+                    console.log("Le jour que vous avez entré n'est pas valide".red);
+                }
+
+                showMainMenu(); // Réafficher le menu
+            });
+        });
+    });
+}
+
+// Spec5 dans la NF2
+function spec5() {
+    let joursSemaine = ["L", "MA", "ME", "J", "V", "S"];
+
+    rl.question('Entrez le premier jour (L, MA, ME, J, V, S) : ', (jour1) => {
+        if (!joursSemaine.includes(jour1)) {
+            console.log('Le jour entré n\'est pas valide.'.red);
+            showMainMenu();
+            return;
+        }
+
+        rl.question('Entrez le dernier jour (L, MA, ME, J, V, S) : ', (jour2) => {
+            if (!joursSemaine.includes(jour2)) {
+                console.log('Le jour entré n\'est pas valide.'.red);
+                showMainMenu();
+                return;
+            }
+
+            let fichierAnalyzeur = recupererFichiers();
+
+            if (fichierAnalyzeur.errorCount === 0) {
+                let fichierCruFiltre = fichierAnalyzeur.parsedCRU;
+
+                let lesCreneaux = [];
+                fichierCruFiltre.forEach(element => {
+                    lesCreneaux = lesCreneaux.concat(element.creneaux);
+                });
+
+                rl.question("Entrez vos cours séparés par des espaces: ", function(answer) {
+                    let cours = answer.split(' ');
+
+                    lesCreneaux = lesCreneaux.filter(c =>
+                        cours.includes(c.nomUe) &&
+                        joursSemaine.indexOf(c.jour) <= joursSemaine.indexOf(jour2) &&
+                        joursSemaine.indexOf(c.jour) >= joursSemaine.indexOf(jour1)
+                    );
+
+                    rl.close();
+
+                    let rfcText = "BEGIN:VCALENDAR\nVersion: 2.0\nPRODID:-//Universite centrale de la republique de Sealand (SRU)//FR\n";
+                    
+                    lesCreneaux.forEach(element => {
+                        let today = new Date();
+                        let year = today.getFullYear();
+                        let month = String(today.getMonth() + 1).padStart(2, '0');
+                        let day = String(today.getDate()).padStart(2, '0');
+
+                        let startTime = year + month + day + 'T' + element.heureDebut.replace(':', '') + "00";
+                        let endTime = year + month + day + 'T' + element.heureFin.replace(':', '') + "00";
+
+                        rfcText += "BEGIN:VEVENT\nUID:000000\nDTSTAMP:" +
+                            today.toISOString() +
+                            "\nORGANIZER:Mailto:info.utt@utt.fr\nDTSTART:" +
+                            startTime +
+                            "\nDTEND:" +
+                            endTime +
+                            "\nSUMMARY:Nom de l'UV:" +
+                            element.nomUe + ' | ' +
+                            element.type + ',' +
+                            element.capacitaire +
+                            ',' + element.index +
+                            "\nLOCATION:" +
+                            element.salle +
+                            "\nEND:VEVENT\n";
+                    });
+
+                    rfcText += "END:VCALENDAR\n";
+
+                    let filename = jour1 + '_' + jour2 + '_planning';
+                    fs.writeFileSync('./' + filename + '.ics', rfcText);
+                    console.log('Le fichier resultat est généré : ./' + filename + '.ics');
+                    
+                    showMainMenu(); // Réafficher le menu
+                });
+            } else {
+                console.log('Le fichier .cru contient une erreur'.red);
+                showMainMenu();
+            }
+        });
+    });
+}
+
+
+// Spec7 dans la NF2
+function spec7() {
+    const logger = console;
+
+    rl.question('Appuyez sur Entrée pour générer le diagramme du taux d\'occupation : ', () => {
+        try {
+            let analyseurFichier = recupererFichiers();
+
+            if (analyseurFichier.errorCount === 0) {
+                var listeSalles = [];
+
+                analyseurFichier.listeCreneaux.forEach(function (creneau) {
+                    var debut = creneau.heureDebut.split(':');
+                    var fin = creneau.heureFin.split(':');
+                    var heureDebut = debut[0];
+                    var minDebut = debut[1];
+                    var heureFin = fin[0];
+                    var minFin = fin[1];
+    
+                    if (minDebut === "30") {
+                        heureDebut = parseInt(heureDebut, 10) + 0.5;
+                    }
+                    if (minFin === "30") {
+                        heureFin = parseInt(heureFin, 10) + 0.5;
+                    }
+                    const duree = heureFin - heureDebut;
+    
+                    if (listeSalles.some(e => e.nom.match(creneau.salle))) {
+                        const salle = listeSalles.find(e => e.nom.match(creneau.salle));
+                        const pos = listeSalles.indexOf(salle);
+                        listeSalles[pos].occupation += duree;
+                    } else {
+                        listeSalles.push(new Salle(creneau.salle, duree))
+                    }
+                });
+
+                listeSalles.forEach(function (salle) {
+                    salle.occupation = (salle.occupation / 66) * 100;
+                });
+
+                var occRtChart = {
+                    "data": {
+                        "values": listeSalles
+                    },
+                    "mark": "bar",
+                    "encoding": {
+                        "x": {"field": "nom", "type": "nominal"},
+                        "y": {"field": "occupation", "type": "quantitative", "title": "Taux d'Occupation %"}
+                    }
+                };
+
+                const myChart = vegalite.compile(occRtChart).spec;
+
+                var runtime = vg.parse(myChart);
+                var view = new vg.View(runtime).renderer('svg').run();
+                var mySvg = view.toSVG();
+                mySvg.then(function (res) {
+                    fs.writeFileSync("./result.svg", res);
+                    view.finalize();
+                    logger.info("Graphique généré : ./result.svg");
+                });
+
+            } else {
+                logger.info("Veuillez vous assurer d'entrer un nom de salle valide.".red);
+            }
+
+            showMainMenu(); // Réafficher le menu
+        } catch (error) {
+            logger.error(`An error occurred: ${error.message}`);
+        }
+    });
+}
+
+// Spec8 dans la NF2
+function spec8() {
+    let analyzer = recupererFichiers();
+
+    if (analyzer.errorCount === 0) {
+        let tableauSalles = new Array();
+        if (analyzer.listeCreneaux.length > 0) {
+            // Utilisation de l'opérateur de comparaison correct
+            analyzer.listeCreneaux.forEach(c => creerTabSalles(c, tableauSalles));
+
+            let tableauSallesAvecCapacites = new Array();
+            tableauSalles.forEach(c => tableauSallesAvecCapacites.push(new objetSalle(c, infoCapaciteMaximumSalle(c, analyzer.listeCreneaux))))
+            tableauSallesAvecCapacites.sort((a, b) => a.capMax - b.capMax);
+            console.log("Voici le classement des salles par ordre de capacité maximale croissante :");
+            tableauSallesAvecCapacites.forEach(c => console.log(c.nom + " capacité maximale : " + c.capMax));
+        } else {
+            console.log("Le fichier ne contient pas de salles.".red);
+        }
+    } else {
+        console.log("Le fichier .cru contient une erreur".red);
+    }
+
+    showMainMenu(); // Réafficher le menu
+}
+
+  // Gérer le choix de l'utilisateur
+  function handleUserChoice(choice) {
+    switch (choice.trim()) {
+    case '1':
+    spec1();
+    break;
+    case '2':
+    spec2();
+    break;
+    case '3':
+    spec3();
+    break;
+    case '4':
+    spec4();
+    break;
+    case '5':
+    spec5();
+    break;
+    case '6':
+    spec6();
+    break;
+    case '7':
+    spec7();
+    break;
+    case '8':
+    spec8();
+    break;
+    case 'quit':
+    console.log('Au revoir!');
+    rl.close(); // Fermer l'interface readline
+    break;
+    default:
+        console.log('Choix invalide. Veuillez réessayer.'.red);
+        showMainMenu(); // Réafficher le menu
+    }
+  }
 
 function recupererFichiers() {
     console.log("Recuperation des données depuis ".blue + dataBasePath.blue);
