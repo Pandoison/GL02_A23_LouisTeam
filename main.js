@@ -34,13 +34,8 @@ cli
                     analyseurFichier.listeCreneaux.forEach(c => creerTableauSallesDuCours(c, tableauSallesDuCours, args.cours));
                     console.log("Voici la liste des salles de ce cours :");
                     tableauSallesDuCours.forEach(c => console.log(c));
-<<<<<<< HEAD
                 } else {  
                     logger.info("Le cours rentré n'existe pas".red);
-=======
-                } else {
-                    logger.info("Veuillez entrer un nom de cours valable".red);
->>>>>>> 41ab4edbf37c8cad28e251065c2e855a60f4a53d
                 }
             } else {
                 logger.info("Le fichier ne contient pas de salles.".red);
@@ -60,7 +55,7 @@ cli
        if(analyseurFichier.errorCount === 0){
 			let salleExistante = analyseurFichier.listeCreneaux;
 			if (salleExistante.filter(p => p.salle.match(args.salle)).length ===0){
-				logger.info("Veuillez entrer un nom de salle valide".red)
+				logger.info("La salle demandé n'existe pas dans la base de donnée.".red)
 			}
 			else {
 				let capaciteMaxSalle = infoCapaciteMaximumSalle(args.salle, analyseurFichier.listeCreneaux);
@@ -213,14 +208,13 @@ cli
                     logger.info("Le fichier .cru contient une erreur".red);
                 }
             } else {
-            logger.info("Veuillez entrer un créneau valide”.".red);
+            logger.info("Les horaires que vous avez entrés ne sont pas valides".red);
         }
         } else {
             logger.info("Le jour que vous avez entré n'est pas valide".red);
         }
     })
 
-<<<<<<< HEAD
     
     // Enseignements d'un utilisateur entre 2 dates (charbel) SPEC5
     .command('GenererCalendar', 'Generer un fichier iCalendar contenant la calendrier d\'un utilisateur entre 2 jours')
@@ -286,97 +280,6 @@ cli
                     });
 
                     rfcText += "\nEND:VCALENDAR";
-=======
-//Réserver une salle pour un créneau durant un jour de l'année SPEC06
-.command('ReserverSalle', 'Réserver une salle pour un créneau donné')
-.argument('<salle>', 'Le nom de la salle.')
-.argument('<heureDebut>', 'Heure de début de la réservation.')
-.argument('<heureFin>', 'Heure de fin de la réservation.')
-.argument('<date>', 'Date de la réservation au format JJ/MM/AAAA.')
-.action(({args, options, logger}) => {
-    let analyzer = recupererFichiers();
-
-    // Charger les réservations depuis le fichier JSON
-    let reservations = [];
-    try {
-        reservations = JSON.parse(fs.readFileSync('reservations.json', 
-'utf-8')) || [];
-    } catch (error) {
-        // Gérer les erreurs de lecture du fichier JSON
-        logger.error("Erreur lors de la lecture du fichier 
-reservations.json : " + error.message);
-    }
-
-    // Initialiser la propriété 'reservations' s'il n'existe pas
-    if (!analyzer.reservations) {
-        analyzer.reservations = [];
-    }
-
-    if (analyzer.errorCount === 0) {
-        // Vérifier la disponibilité de la salle
-        let salleExist = analyzer.listeCreneaux.some(c => 
-c.salle.match(args.salle));
-        if (salleExist) {
-            let salleOccupee = reservations.some(r =>
-                r.salle === args.salle &&
-                r.date === args.date &&
-                ((r.heureDebut <= args.heureDebut && args.heureDebut < 
-r.heureFin) ||
-                (r.heureDebut < args.heureFin && args.heureFin <= 
-r.heureFin))
-            );
-
-            if (!salleOccupee) {
-                // Vérifier si la salle a déjà été réservée
-                let salleDejaReservee = analyzer.reservations.some(r =>
-                    r.salle === args.salle &&
-                    r.date === args.date &&
-                    r.heureDebut === args.heureDebut &&
-                    r.heureFin === args.heureFin
-                );
-
-                if (!salleDejaReservee) {
-                    // Mettre à jour les informations pour refléter la 
-réservation
-                    // Ajouter la réservation à la liste des réservations
-                    analyzer.reservations.push({
-                        salle: args.salle,
-                        date: args.date,
-                        heureDebut: args.heureDebut,
-                        heureFin: args.heureFin,
-                    });
-
-                    // Ajouter la réservation au tableau des réservations
-                    reservations.push({
-                        salle: args.salle,
-                        date: args.date,
-                        heureDebut: args.heureDebut,
-                        heureFin: args.heureFin,
-                    });
-
-                    // Enregistrer les réservations dans le fichier JSON
-                    fs.writeFileSync('reservations.json', 
-JSON.stringify(reservations, null, 2));
-
-                    logger.info("La salle " + args.salle + " a été 
-réservée avec succès pour le créneau du " + args.date + " de " + 
-args.heureDebut + " à " + args.heureFin);
-                } else {
-                    logger.info("La salle est déjà réservée pendant ce 
-créneau. Veuillez choisir un autre créneau.");
-                }
-            } else {
-                logger.info("La salle est déjà réservée pendant ce 
-créneau. Veuillez choisir un autre créneau.");
-            }
-        } else {
-            logger.info("La salle renseignée n'existe pas".red);
-        }
-    } else {
-        logger.info("Le fichier .cru contient une erreur".red);
-    }
-})
->>>>>>> 41ab4edbf37c8cad28e251065c2e855a60f4a53d
 
 
                     let filename = args.jour1 + '_' + args.jour2 + '_planning';
@@ -485,7 +388,6 @@ créneau. Veuillez choisir un autre créneau.");
 
     
 
-<<<<<<< HEAD
 // Créer une instance de l'interface readline
 const rl = readline.createInterface({
     input: process.stdin,
@@ -518,7 +420,7 @@ function showMainMenu() {
     console.log('3 - Spec3 (Disponibilités d\'une salle)');
     console.log('4 - Spec4 (Affiche les salles disponibles durant un créneau donné)');
     console.log('5 - Spec5 (Enseignements d\'un utilisateur entre 2 dates (charbel))');
-    console.log('6 - Spec6 ()');
+    console.log('6 - Spec6 (...)');
     console.log('7 - Spec7 (Visualisation synthétique du taux d\'occupation)');
     console.log('8 - Spec8 (Affiche le classement des salles)');
     console.log('Entrez votre choix ou tapez "quit" pour quitter :');
@@ -945,9 +847,6 @@ function spec8() {
         showMainMenu(); // Réafficher le menu
     }
   }
-=======
-cli.run(process.argv.slice(2)); 
->>>>>>> 41ab4edbf37c8cad28e251065c2e855a60f4a53d
 
 function recupererFichiers() {
     console.log("Recuperation des données depuis ".blue + dataBasePath.blue);
