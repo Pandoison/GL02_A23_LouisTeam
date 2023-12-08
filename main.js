@@ -215,6 +215,95 @@ cli
         }
     })
 
+//Réserver une salle pour un créneau durant un jour de l'année SPEC06
+.command('ReserverSalle', 'Réserver une salle pour un créneau donné')
+.argument('<salle>', 'Le nom de la salle.')
+.argument('<heureDebut>', 'Heure de début de la réservation.')
+.argument('<heureFin>', 'Heure de fin de la réservation.')
+.argument('<date>', 'Date de la réservation au format JJ/MM/AAAA.')
+.action(({args, options, logger}) => {
+    let analyzer = recupererFichiers();
+
+    // Charger les réservations depuis le fichier JSON
+    let reservations = [];
+    try {
+        reservations = JSON.parse(fs.readFileSync('reservations.json', 
+'utf-8')) || [];
+    } catch (error) {
+        // Gérer les erreurs de lecture du fichier JSON
+        logger.error("Erreur lors de la lecture du fichier 
+reservations.json : " + error.message);
+    }
+
+    // Initialiser la propriété 'reservations' s'il n'existe pas
+    if (!analyzer.reservations) {
+        analyzer.reservations = [];
+    }
+
+    if (analyzer.errorCount === 0) {
+        // Vérifier la disponibilité de la salle
+        let salleExist = analyzer.listeCreneaux.some(c => 
+c.salle.match(args.salle));
+        if (salleExist) {
+            let salleOccupee = reservations.some(r =>
+                r.salle === args.salle &&
+                r.date === args.date &&
+                ((r.heureDebut <= args.heureDebut && args.heureDebut < 
+r.heureFin) ||
+                (r.heureDebut < args.heureFin && args.heureFin <= 
+r.heureFin))
+            );
+
+            if (!salleOccupee) {
+                // Vérifier si la salle a déjà été réservée
+                let salleDejaReservee = analyzer.reservations.some(r =>
+                    r.salle === args.salle &&
+                    r.date === args.date &&
+                    r.heureDebut === args.heureDebut &&
+                    r.heureFin === args.heureFin
+                );
+
+                if (!salleDejaReservee) {
+                    // Mettre à jour les informations pour refléter la 
+réservation
+                    // Ajouter la réservation à la liste des réservations
+                    analyzer.reservations.push({
+                        salle: args.salle,
+                        date: args.date,
+                        heureDebut: args.heureDebut,
+                        heureFin: args.heureFin,
+                    });
+
+                    // Ajouter la réservation au tableau des réservations
+                    reservations.push({
+                        salle: args.salle,
+                        date: args.date,
+                        heureDebut: args.heureDebut,
+                        heureFin: args.heureFin,
+                    });
+
+                    // Enregistrer les réservations dans le fichier JSON
+                    fs.writeFileSync('reservations.json', 
+JSON.stringify(reservations, null, 2));
+
+                    logger.info("La salle " + args.salle + " a été 
+réservée avec succès pour le créneau du " + args.date + " de " + 
+args.heureDebut + " à " + args.heureFin);
+                } else {
+                    logger.info("La salle est déjà réservée pendant ce 
+créneau. Veuillez choisir un autre créneau.");
+                }
+            } else {
+                logger.info("La salle est déjà réservée pendant ce 
+créneau. Veuillez choisir un autre créneau.");
+            }
+        } else {
+            logger.info("La salle renseignée n'existe pas".red);
+        }
+    } else {
+        logger.info("Le fichier .cru contient une erreur".red);
+    }
+})
 
 
 
