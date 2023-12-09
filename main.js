@@ -344,7 +344,7 @@ function spec6() {
     rl.question('Entrez le nom de la salle à réserver : ', (salle) => {
         rl.question('Entrez l\'heure de début de la réservation (HH:MM) : ', (heureDebut) => {
             rl.question('Entrez l\'heure de fin de la réservation (HH:MM) : ', (heureFin) => {
-                rl.question('Entrez la date de la réservation (JJ/MM/AAAA) : ', (date) => {
+                rl.question('Entrez la date de la réservation (JJMMAAAA) : ', (date) => {
                     let analyzer = recupererFichiers();
         let reservations = [];
         try {
