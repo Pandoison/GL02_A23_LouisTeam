@@ -8,7 +8,7 @@ Prérequis :
 Assurez-vous d'avoir Node.js installé sur votre machine pour exécuter ce script.
 
 Utilisation :
-Pour mettre en marche le logiciel, exécutez le fichier main.js depuis l'invite de commande à l'aide de la commande node main.js.
+Pour mettre en marche le logiciel, exécutez le fichier main.js depuis l'invite de commande à l'aide de la commande node main.js
 Au démarrage du logiciel, un menu interactif s'affiche, proposant diverses actions. Chaque commande est représentée par un numéro et l'utilisateur est invité à saisir le numéro associé à l'action qu'il souhaite effectuer.
 
 Commandes disponibles :
